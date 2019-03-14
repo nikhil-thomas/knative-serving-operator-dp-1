@@ -139,7 +139,7 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 	//yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
 	//err = yaml.Apply()
 
-	err = r.config.Apply()
+	err = r.config.Apply(instance)
 	if err != nil {
 		reqLogger.Error(err, "reconcile : Error applying manifest")
 		return reconcile.Result{}, err

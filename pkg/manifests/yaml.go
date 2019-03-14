@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
 	"k8s.io/client-go/rest"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,7 +36,33 @@ func (f *YamlFile) Apply() error {
 	if f.Resources == nil {
 		f.Resources = parse(f.Name)
 	}
-	return create(f.Resources, f.dynamicClient)
+	//return create(f.Resources, f.dynamicClient)
+
+	for _, spec := range f.Resources {
+		c, err := client(spec, f.dynamicClient)
+		if err != nil {
+			return err
+		}
+
+		_, err = c.Get(spec.GetName(), v1.GetOptions{})
+		if err == nil {
+			continue
+		}
+
+		if !errors.IsNotFound(err) {
+			return err
+		}
+
+		_, err = c.Create(&spec, v1.CreateOptions{})
+		if err != nil {
+			if errors.IsAlreadyExists(err) {
+				continue
+			}
+			log.Println("Manifest :: Apply", spec.GetName(), err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 // Parse parses a yaml file into a slice of unstructured resources
@@ -50,19 +78,19 @@ func parse(filename string) []unstructured.Unstructured {
 }
 
 // Create applies unstructered resources
-func create(resources []unstructured.Unstructured, dc dynamic.Interface) error {
-	for _, spec := range resources {
-		c, err := client(spec, dc)
-		if err != nil {
-			return err
-		}
-		_, err = c.Create(&spec, v1.CreateOptions{})
-		if err != nil {
-			fmt.Println("manifests::create ERROR :", spec.GetName(), err)
-		}
-	}
-	return nil
-}
+// func create(resources []unstructured.Unstructured, dc dynamic.Interface) error {
+// 	for _, spec := range resources {
+// 		c, err := client(spec, dc)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		_, err = c.Create(&spec, v1.CreateOptions{})
+// 		if err != nil {
+// 			fmt.Println("manifests::create ERROR :", spec.GetName(), err)
+// 		}
+// 	}
+// 	return nil
+// }
 
 // func decode(in chan []byte, out chan unstructured.Unstructured) {
 // 	for buf := range in {

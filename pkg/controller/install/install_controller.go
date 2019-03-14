@@ -140,6 +140,7 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 	err = yaml.Apply()
 	if err != nil {
 		reqLogger.Error(err, "reconcile : Error applying manifest")
+		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
 }

@@ -9,7 +9,6 @@ import (
 
 	"k8s.io/client-go/rest"
 
-	servingv1alpha1 "github.com/nikhil-thomas/knative-serving-operator/pkg/apis/serving/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,7 +34,7 @@ func NewYamlFile(path string, config *rest.Config) *YamlFile {
 	}
 }
 
-func (f *YamlFile) Apply(owner *servingv1alpha1.Install) error {
+func (f *YamlFile) Apply(owner *v1.OwnerReference) error {
 	if f.Resources == nil {
 		f.Resources = parse(f.Name)
 	}
@@ -55,17 +54,7 @@ func (f *YamlFile) Apply(owner *servingv1alpha1.Install) error {
 		if !errors.IsNotFound(err) {
 			return err
 		}
-		boolTrue := true
-		spec.SetOwnerReferences([]v1.OwnerReference{
-			{
-				APIVersion:         owner.APIVersion,
-				Kind:               owner.Kind,
-				Name:               owner.Name,
-				UID:                owner.UID,
-				Controller:         &boolTrue,
-				BlockOwnerDeletion: &boolTrue,
-			},
-		})
+		spec.SetOwnerReferences([]v1.OwnerReference{*owner})
 
 		_, err = c.Create(&spec, v1.CreateOptions{})
 		if err != nil {

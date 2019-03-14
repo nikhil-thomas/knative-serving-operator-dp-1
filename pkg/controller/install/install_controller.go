@@ -10,6 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -139,7 +140,7 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 	//yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
 	//err = yaml.Apply()
 
-	err = r.config.Apply(instance)
+	err = r.config.Apply(v1.NewControllerRef(instance, instance.GroupVersionKind()))
 	if err != nil {
 		reqLogger.Error(err, "reconcile : Error applying manifest")
 		return reconcile.Result{}, err

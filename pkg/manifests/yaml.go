@@ -21,26 +21,22 @@ import (
 var log = logf.Log.WithName("manifest_yaml")
 
 type YamlFile struct {
-	Name          string
+	name          string
 	dynamicClient dynamic.Interface
-	Resources     []unstructured.Unstructured
+	resources     []unstructured.Unstructured
 }
 
 func NewYamlFile(path string, config *rest.Config) *YamlFile {
 	client, _ := dynamic.NewForConfig(config)
 	return &YamlFile{
-		Name:          path,
+		name:          path,
 		dynamicClient: client,
+		resources:     parse(path),
 	}
 }
 
 func (f *YamlFile) Apply(owner *v1.OwnerReference) error {
-	if f.Resources == nil {
-		log.Info("Reading YAML file", "name:", f.Name)
-		f.Resources = parse(f.Name)
-	}
-
-	for _, spec := range f.Resources {
+	for _, spec := range f.resources {
 		c, err := client(spec, f.dynamicClient)
 		if err != nil {
 			return err

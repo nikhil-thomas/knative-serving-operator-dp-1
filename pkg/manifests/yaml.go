@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -16,7 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/dynamic"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var log = logf.Log.WithName("manifest_yaml")
 
 type YamlFile struct {
 	Name          string
@@ -58,9 +60,10 @@ func (f *YamlFile) Apply() error {
 			if errors.IsAlreadyExists(err) {
 				continue
 			}
-			log.Println("Manifest :: Apply", spec.GetName(), err.Error())
+			log.Error(err, "apply :: create")
 			return err
 		}
+		log.Info("Created resource", "kind", spec.GetKind(), "name", spec.GetName())
 	}
 	return nil
 }

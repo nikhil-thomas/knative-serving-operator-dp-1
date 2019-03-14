@@ -3,8 +3,6 @@ package install
 import (
 	"context"
 
-	"k8s.io/client-go/rest"
-
 	"k8s.io/client-go/dynamic"
 
 	servingv1alpha1 "github.com/nikhil-thomas/knative-serving-operator/pkg/apis/serving/v1alpha1"
@@ -41,7 +39,8 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileInstall{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		config: mgr.GetConfig(),
+		//config: mgr.GetConfig(),
+		config: manifests.NewYamlFile("/tmp/knative-serving.yaml", mgr.GetConfig()),
 	}
 }
 
@@ -81,7 +80,8 @@ type ReconcileInstall struct {
 	client        client.Client
 	scheme        *runtime.Scheme
 	dynamicClient dynamic.Interface
-	config        *rest.Config
+	// config        *rest.Config
+	config *manifests.YamlFile
 }
 
 // Reconcile reads that state of the cluster for a Install object and makes changes based on the state read
@@ -136,8 +136,10 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 	// // Pod already exists - don't requeue
 	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	// manifests.Create(manifests.Parse("/tmp/knative-serving.yaml"), r.dynamicClient)
-	yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
-	err = yaml.Apply()
+	//yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
+	//err = yaml.Apply()
+
+	err = r.config.Apply()
 	if err != nil {
 		reqLogger.Error(err, "reconcile : Error applying manifest")
 		return reconcile.Result{}, err

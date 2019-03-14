@@ -37,7 +37,12 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileInstall{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	//return &ReconcileInstall{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileInstall{
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		config: mgr.GetConfig(),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -76,6 +81,7 @@ type ReconcileInstall struct {
 	client        client.Client
 	scheme        *runtime.Scheme
 	dynamicClient dynamic.Interface
+	config        *rest.Config
 }
 
 // Reconcile reads that state of the cluster for a Install object and makes changes based on the state read
@@ -129,7 +135,12 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// // Pod already exists - don't requeue
 	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	manifests.Create(manifests.Parse("/tmp/knative-serving.yaml"), r.dynamicClient)
+	// manifests.Create(manifests.Parse("/tmp/knative-serving.yaml"), r.dynamicClient)
+	yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
+	err = yaml.Apply()
+	if err != nil {
+		reqLogger.Error(err, "reconcile : Error applying manifest")
+	}
 	return reconcile.Result{}, nil
 }
 
@@ -156,8 +167,8 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 // 	}
 // }
 
-func (r *ReconcileInstall) InjectConfig(c *rest.Config) error {
-	var err error
-	r.dynamicClient, err = dynamic.NewForConfig(c)
-	return err
-}
+// func (r *ReconcileInstall) InjectConfig(c *rest.Config) error {
+// 	var err error
+// 	r.dynamicClient, err = dynamic.NewForConfig(c)
+// 	return err
+// }

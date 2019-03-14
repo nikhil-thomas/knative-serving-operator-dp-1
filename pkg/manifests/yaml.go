@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/client-go/rest"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -14,8 +16,29 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+type YamlFile struct {
+	Name          string
+	dynamicClient dynamic.Interface
+	Resources     []unstructured.Unstructured
+}
+
+func NewYamlFile(path string, config *rest.Config) *YamlFile {
+	client, _ := dynamic.NewForConfig(config)
+	return &YamlFile{
+		Name:          path,
+		dynamicClient: client,
+	}
+}
+
+func (f *YamlFile) Apply() error {
+	if f.Resources == nil {
+		f.Resources = parse(f.Name)
+	}
+	return create(f.Resources, f.dynamicClient)
+}
+
 // Parse parses a yaml file into a slice of unstructured resources
-func Parse(filename string) []unstructured.Unstructured {
+func parse(filename string) []unstructured.Unstructured {
 	in, out := make(chan []byte, 10), make(chan unstructured.Unstructured, 10)
 	go read(filename, in)
 	go decode(in, out)
@@ -27,7 +50,7 @@ func Parse(filename string) []unstructured.Unstructured {
 }
 
 // Create applies unstructered resources
-func Create(resources []unstructured.Unstructured, dc dynamic.Interface) error {
+func create(resources []unstructured.Unstructured, dc dynamic.Interface) error {
 	for _, spec := range resources {
 		c, err := client(spec, dc)
 		if err != nil {

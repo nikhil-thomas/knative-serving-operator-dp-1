@@ -2,6 +2,7 @@ package install
 
 import (
 	"context"
+	"flag"
 
 	"k8s.io/client-go/dynamic"
 
@@ -21,7 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_install")
+var (
+	log      = logf.Log.WithName("controller_install")
+	filename = flag.String("filename", "/tmp/knative-serving.yaml",
+		"The filename containing the YAML resources to apply")
+)
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -41,7 +46,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 		//config: mgr.GetConfig(),
-		config: manifests.NewYamlFile("/tmp/knative-serving.yaml", mgr.GetConfig()),
+		config: manifests.NewYamlFile(*filename, mgr.GetConfig()),
 	}
 }
 
@@ -110,36 +115,6 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	// pod := newPodForCR(instance)
-
-	// // Set Install instance as the owner and controller
-	// if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-	// 	return reconcile.Result{}, err
-	// }
-
-	// // Check if this Pod already exists
-	// found := &corev1.Pod{}
-	// err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	// if err != nil && errors.IsNotFound(err) {
-	// 	reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-	// 	err = r.client.Create(context.TODO(), pod)
-	// 	if err != nil {
-	// 		return reconcile.Result{}, err
-	// 	}
-
-	// 	// Pod created successfully - don't requeue
-	// 	return reconcile.Result{}, nil
-	// } else if err != nil {
-	// 	return reconcile.Result{}, err
-	// }
-
-	// // Pod already exists - don't requeue
-	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	// manifests.Create(manifests.Parse("/tmp/knative-serving.yaml"), r.dynamicClient)
-	//yaml := manifests.NewYamlFile("/tmp/knative-serving.yaml", r.config)
-	//err = yaml.Apply()
-
 	err = r.config.Apply(v1.NewControllerRef(instance, instance.GroupVersionKind()))
 	if err != nil {
 		reqLogger.Error(err, "reconcile : Error applying manifest")
@@ -147,32 +122,3 @@ func (r *ReconcileInstall) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	return reconcile.Result{}, nil
 }
-
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-// func newPodForCR(cr *servingv1alpha1.Install) *corev1.Pod {
-// 	labels := map[string]string{
-// 		"app": cr.Name,
-// 	}
-// 	return &corev1.Pod{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      cr.Name + "-pod",
-// 			Namespace: cr.Namespace,
-// 			Labels:    labels,
-// 		},
-// 		Spec: corev1.PodSpec{
-// 			Containers: []corev1.Container{
-// 				{
-// 					Name:    "busybox",
-// 					Image:   "busybox",
-// 					Command: []string{"sleep", "3600"},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// func (r *ReconcileInstall) InjectConfig(c *rest.Config) error {
-// 	var err error
-// 	r.dynamicClient, err = dynamic.NewForConfig(c)
-// 	return err
-// }

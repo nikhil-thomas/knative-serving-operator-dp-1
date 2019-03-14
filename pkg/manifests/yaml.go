@@ -36,9 +36,9 @@ func NewYamlFile(path string, config *rest.Config) *YamlFile {
 
 func (f *YamlFile) Apply(owner *v1.OwnerReference) error {
 	if f.Resources == nil {
+		log.Info("Reading YAML file", "name:", f.Name)
 		f.Resources = parse(f.Name)
 	}
-	//return create(f.Resources, f.dynamicClient)
 
 	for _, spec := range f.Resources {
 		c, err := client(spec, f.dynamicClient)
@@ -83,43 +83,13 @@ func parse(filename string) []unstructured.Unstructured {
 	return result
 }
 
-// Create applies unstructered resources
-// func create(resources []unstructured.Unstructured, dc dynamic.Interface) error {
-// 	for _, spec := range resources {
-// 		c, err := client(spec, dc)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		_, err = c.Create(&spec, v1.CreateOptions{})
-// 		if err != nil {
-// 			fmt.Println("manifests::create ERROR :", spec.GetName(), err)
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func decode(in chan []byte, out chan unstructured.Unstructured) {
-// 	for buf := range in {
-// 		spec := unstructured.Unstructured{}
-// 		err := yaml.NewYAMLToJSONDecoder(bytes.NewReader(buf)).Decode(&spec)
-// 		if err != nil {
-// 			if err != io.EOF {
-// 				fmt.Println("manifests::decode ERROR :", spec.GetName(), err)
-// 			}
-// 			continue
-// 		}
-// 		out <- spec
-// 	}
-// 	close(out)
-// }
-
 func decode(in chan []byte, out chan unstructured.Unstructured) {
 	for buf := range in {
 		spec := unstructured.Unstructured{}
 		err := yaml.NewYAMLToJSONDecoder(bytes.NewReader(buf)).Decode(&spec)
 		if err != nil {
 			if err != io.EOF {
-				fmt.Println("ERROR", spec.GetName(), err)
+				log.Error(err, "unable to decode yaml, ignoring")
 			}
 			continue
 		}
